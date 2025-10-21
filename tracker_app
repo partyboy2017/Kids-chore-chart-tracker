@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chore Chart Fun!</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for a friendly look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Tone.js for sound effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <!-- Custom CSS -->
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f0f9ff; /* Light blue sky background */
+        }
+        .main-container {
+            max-width: 500px;
+            margin: auto;
+        }
+        .chore-item {
+            transition: all 0.3s ease;
+        }
+        .chore-item.done {
+            transform: scale(0.98);
+            background-color: #d1fae5; /* Light green */
+        }
+        .chore-item.done .task-name {
+            text-decoration: line-through;
+            color: #6b7280;
+        }
+        /* Custom checkbox style for a more fun look */
+        .custom-checkbox {
+            -webkit-appearance: none;
+            appearance: none;
+            background-color: #fff;
+            margin: 0;
+            font: inherit;
+            color: currentColor;
+            width: 2em;
+            height: 2em;
+            border: 0.15em solid #3b82f6; /* Blue border */
+            border-radius: 0.5em;
+            transform: translateY(-0.075em);
+            display: grid;
+            place-content: center;
+            cursor: pointer;
+        }
+        .custom-checkbox::before {
+            content: "";
+            width: 1.2em;
+            height: 1.2em;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em #10b981; /* Green checkmark */
+            transform-origin: bottom left;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+        .custom-checkbox:checked::before {
+            transform: scale(1);
+        }
+        .points-badge {
+            font-weight: 900; /* Extra bold */
+        }
+        .total-points-display {
+            transition: transform 0.2s ease-in-out;
+        }
+        .total-points-display.pop {
+            transform: scale(1.2);
+        }
+        .day-tab {
+            transition: all 0.2s ease-in-out;
+        }
+        .day-tab.active {
+            background-color: #3b82f6;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .day-select-btn {
+            border: 2px solid #e5e7eb;
+            transition: all 0.2s ease-in-out;
+        }
+        .day-select-btn.selected {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div class="main-container p-4 md:p-6">
+        <!-- Header -->
+        <header class="text-center mb-6">
+            <h1 class="text-4xl md:text-5xl font-black text-blue-600 drop-shadow-md">Chore Chart Fun!</h1>
+            <p class="text-gray-500 mt-1">Let's get our chores done!</p>
+        </header>
+
+        <!-- Total Points Display -->
+        <div class="bg-white p-4 rounded-2xl shadow-lg mb-6 flex justify-between items-center">
+            <h2 class="text-xl font-bold text-gray-700">Total Points Earned:</h2>
+            <div id="total-points" class="total-points-display text-4xl font-black text-green-500">0</div>
+        </div>
+
+        <!-- Add Chore Form -->
+        <div class="bg-white p-6 rounded-2xl shadow-lg mb-8">
+            <h2 class="text-2xl font-bold mb-4 text-gray-700">Add a New Chore</h2>
+            <form id="add-chore-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <input type="text" id="chore-name" placeholder="E.g., Make bed" class="sm:col-span-2 p-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition" required>
+                <input type="number" id="chore-points" placeholder="Points" min="1" class="p-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition" required>
+                
+                <div class="sm:col-span-2">
+                    <div id="chore-day-selector" class="flex flex-wrap gap-2">
+                        <button type="button" data-day="All" class="day-select-btn flex-1 text-xs sm:text-sm font-bold p-2 rounded-lg">All</button>
+                        <button type="button" data-day="Sunday" class="day-select-btn flex-1 text-xs sm:text-sm font-bold p-2 rounded-lg">Sun</button>
+                        <button type="button" data-day="Monday" class="day-select-btn flex-1 text-xs sm:text-sm font-bold p-2 rounded-lg">Mon</button>
+                        <button type="button" data-day="Tuesday" class="day-select-btn flex-1 text-xs sm:text-sm font-bold p-2 rounded-lg">Tue</button>
+                        <button type="button" data-day="Wednesday" class="day-select-btn flex-1 text-xs sm:text-sm font-bold p-2 rounded-lg">Wed</button>
+                        <button type="button" data-day="Thursday" class="day-select-btn flex-1 text-xs sm:text-sm font-bold p-2 rounded-lg">Thu</button>
+                        <button type="button" data-day="Friday" class="day-select-btn flex-1 text-xs sm:text-sm font-bold p-2 rounded-lg">Fri</button>
+                        <button type="button" data-day="Saturday" class="day-select-btn flex-1 text-xs sm:text-sm font-bold p-2 rounded-lg">Sat</button>
+                    </div>
+                </div>
+
+                <button type="submit" class="sm:col-span-2 bg-blue-500 hover:bg-blue-600 text-white font-bold p-3 rounded-xl shadow-md transition transform hover:scale-105">Add Chore(s)</button>
+            </form>
+        </div>
+        
+        <!-- Day Tabs -->
+        <div id="day-tabs" class="grid grid-cols-4 sm:grid-cols-7 gap-2 mb-6">
+            <!-- Day tabs will be generated here -->
+        </div>
+
+        <!-- Chore List -->
+        <div>
+            <div id="chore-list-container">
+                <!-- Chores will be dynamically inserted here -->
+            </div>
+            <div id="loading" class="text-center p-4 text-gray-500">Loading chores...</div>
+            <div id="empty-state" class="hidden text-center p-8 bg-white rounded-2xl shadow-md">
+                <img src="https://placehold.co/100x100/3B82F6/FFFFFF?text=Yay!" alt="All Done!" class="mx-auto mb-4 rounded-full">
+                <h3 class="text-2xl font-bold text-gray-700">All Chores Done!</h3>
+                <p class="text-gray-500">No more chores for today!</p>
+            </div>
+        </div>
+
+        <!-- Clear Completed Button -->
+        <div class="mt-8 text-center">
+             <button id="clear-completed-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-xl shadow-md transition transform hover:scale-105">Clear All Completed</button>
+        </div>
+
+    </div>
+
+    <!-- Firebase and App Logic -->
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- GLOBAL VARIABLES & CONFIG ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-chore-chart-app';
+        let firebaseConfig;
+        try {
+            firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "DEMO", authDomain: "DEMO", projectId: "DEMO" };
+        } catch (e) {
+            console.error("Failed to parse firebase config", e);
+            firebaseConfig = { apiKey: "DEMO", authDomain: "DEMO", projectId: "DEMO" };
+        }
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let userId = null;
+        let choresCollectionRef = null;
+        let unsubscribeChores = null;
+        let allChores = [];
+        const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const dayFullNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        let selectedDay = dayFullNames[new Date().getDay()];
+
+
+        // --- SOUND EFFECT ---
+        const synth = new Tone.Synth({
+            oscillator: { type: 'sine' },
+            envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 1 }
+        }).toDestination();
+        
+        const playSound = () => {
+             if (Tone.context.state !== 'running') { Tone.start(); }
+            synth.triggerAttackRelease("C5", "8n");
+            setTimeout(() => synth.triggerAttackRelease("G5", "8n"), 150);
+        }
+
+        // --- DOM ELEMENTS ---
+        const choreListContainer = document.getElementById('chore-list-container');
+        const addChoreForm = document.getElementById('add-chore-form');
+        const choreNameInput = document.getElementById('chore-name');
+        const chorePointsInput = document.getElementById('chore-points');
+        const choreDaySelector = document.getElementById('chore-day-selector');
+        const totalPointsEl = document.getElementById('total-points');
+        const loadingEl = document.getElementById('loading');
+        const emptyStateEl = document.getElementById('empty-state');
+        const clearCompletedBtn = document.getElementById('clear-completed-btn');
+        const dayTabsContainer = document.getElementById('day-tabs');
+
+        // --- AUTHENTICATION ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                choresCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/chores`);
+                listenForChores();
+            } else {
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Authentication failed:", error);
+                    loadingEl.textContent = "Error: Could not connect. Please refresh.";
+                }
+            }
+        });
+        
+        // --- DATA & FIRESTORE LOGIC ---
+        const listenForChores = () => {
+            if (unsubscribeChores) unsubscribeChores();
+            unsubscribeChores = onSnapshot(choresCollectionRef, (snapshot) => {
+                loadingEl.style.display = 'none';
+                allChores = [];
+                snapshot.forEach(doc => {
+                    allChores.push({ id: doc.id, ...doc.data() });
+                });
+                renderAll();
+            }, (error) => {
+                console.error("Error fetching chores:", error);
+                loadingEl.textContent = "Error loading chores.";
+            });
+        };
+
+        const addChore = async (name, points, day) => {
+            try {
+                await addDoc(choresCollectionRef, {
+                    name: name,
+                    points: parseInt(points, 10),
+                    day: day,
+                    isDone: false,
+                    createdAt: new Date()
+                });
+            } catch (error) {
+                console.error("Error adding chore: ", error);
+            }
+        };
+
+        const updateChoreStatus = async (id, isDone) => {
+            const choreDocRef = doc(db, choresCollectionRef.path, id);
+            try {
+                await updateDoc(choreDocRef, { isDone });
+                if (isDone) { playSound(); }
+            } catch (error) {
+                console.error("Error updating chore: ", error);
+            }
+        };
+        
+        const deleteChore = async (id) => {
+             const choreDocRef = doc(db, choresCollectionRef.path, id);
+             try { await deleteDoc(choreDocRef); } 
+             catch(error) { console.error("Error deleting chore: ", error); }
+        };
+
+        const clearCompletedChores = async () => {
+            if (!choresCollectionRef) return;
+            const q = query(choresCollectionRef);
+            const querySnapshot = await getDocs(q);
+            const deletePromises = [];
+            querySnapshot.forEach((doc) => {
+                if(doc.data().isDone) {
+                    deletePromises.push(deleteDoc(doc.ref));
+                }
+            });
+            try { await Promise.all(deletePromises); } 
+            catch (error) { console.error("Error clearing completed chores: ", error); }
+        };
+
+        // --- UI RENDERING ---
+        const renderAll = () => {
+            renderTabs();
+            renderChoresForDay();
+            updateTotalPoints();
+        }
+
+        const renderTabs = () => {
+            dayTabsContainer.innerHTML = '';
+            dayFullNames.forEach((day, index) => {
+                const tab = document.createElement('button');
+                tab.textContent = daysOfWeek[index];
+                tab.dataset.day = day;
+                tab.className = `day-tab p-2 rounded-lg font-bold text-gray-500`;
+                if (day === selectedDay) {
+                    tab.classList.add('active');
+                }
+                dayTabsContainer.appendChild(tab);
+            });
+        };
+
+        const renderChoresForDay = () => {
+            choreListContainer.innerHTML = '';
+            const choresForDay = allChores
+                .filter(chore => chore.day === selectedDay)
+                .sort((a, b) => a.isDone - b.isDone || a.createdAt?.seconds - b.createdAt?.seconds);
+
+            if (choresForDay.length === 0) {
+                 emptyStateEl.classList.remove('hidden');
+            } else {
+                 emptyStateEl.classList.add('hidden');
+            }
+
+            choresForDay.forEach(chore => {
+                const choreEl = document.createElement('div');
+                choreEl.className = `chore-item flex items-center p-4 mb-3 bg-white rounded-2xl shadow-md ${chore.isDone ? 'done' : ''}`;
+                choreEl.innerHTML = `
+                    <input type="checkbox" data-id="${chore.id}" class="custom-checkbox flex-shrink-0" ${chore.isDone ? 'checked' : ''}>
+                    <div class="flex-grow ml-4">
+                        <p class="task-name text-lg font-semibold">${chore.name}</p>
+                    </div>
+                    <div class="points-badge text-lg text-yellow-500 bg-yellow-100 px-3 py-1 rounded-full">${chore.points} pts</div>
+                    <button data-id="${chore.id}" class="delete-btn ml-3 text-gray-400 hover:text-red-500 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                `;
+                choreListContainer.appendChild(choreEl);
+            });
+        };
+
+        const updateTotalPoints = () => {
+            const totalPoints = allChores.reduce((sum, chore) => chore.isDone ? sum + chore.points : sum, 0);
+            const oldPoints = parseInt(totalPointsEl.textContent);
+            totalPointsEl.textContent = totalPoints;
+            if(totalPoints > oldPoints) {
+                totalPointsEl.classList.add('pop');
+                setTimeout(() => totalPointsEl.classList.remove('pop'), 200);
+            }
+        };
+        
+        // --- INITIALIZATION ---
+        const initialize = () => {
+            renderAll();
+        }
+
+        // --- EVENT LISTENERS ---
+        addChoreForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = choreNameInput.value.trim();
+            const points = chorePointsInput.value;
+            
+            const selectedButtons = choreDaySelector.querySelectorAll('.day-select-btn.selected:not([data-day="All"])');
+            const selectedDays = Array.from(selectedButtons).map(btn => btn.dataset.day);
+
+            if (name && points && selectedDays.length > 0) {
+                selectedDays.forEach(day => {
+                    addChore(name, points, day);
+                });
+                
+                choreNameInput.value = '';
+                chorePointsInput.value = '';
+                choreDaySelector.querySelectorAll('.day-select-btn.selected').forEach(btn => btn.classList.remove('selected'));
+            } else if (selectedDays.length === 0) {
+                // simple visual feedback if no day is selected
+                choreDaySelector.classList.add('animate-shake');
+                setTimeout(() => choreDaySelector.classList.remove('animate-shake'), 500);
+            }
+        });
+
+        choreListContainer.addEventListener('click', (e) => {
+            if (e.target.matches('.custom-checkbox')) {
+                const choreId = e.target.dataset.id;
+                const isDone = e.target.checked;
+                updateChoreStatus(choreId, isDone);
+            }
+            if(e.target.closest('.delete-btn')) {
+                 const choreId = e.target.closest('.delete-btn').dataset.id;
+                 deleteChore(choreId);
+            }
+        });
+
+        dayTabsContainer.addEventListener('click', (e) => {
+            if(e.target.matches('.day-tab')) {
+                selectedDay = e.target.dataset.day;
+                renderAll();
+            }
+        });
+
+        choreDaySelector.addEventListener('click', (e) => {
+            const btn = e.target.closest('.day-select-btn');
+            if (!btn) return;
+
+            const day = btn.dataset.day;
+            const allDayButtons = choreDaySelector.querySelectorAll('.day-select-btn:not([data-day="All"])');
+
+            if (day === 'All') {
+                const isSelected = !btn.classList.contains('selected');
+                allDayButtons.forEach(b => b.classList.toggle('selected', isSelected));
+                btn.classList.toggle('selected', isSelected);
+            } else {
+                btn.classList.toggle('selected');
+                const allAreSelected = Array.from(allDayButtons).every(b => b.classList.contains('selected'));
+                choreDaySelector.querySelector('.day-select-btn[data-day="All"]').classList.toggle('selected', allAreSelected);
+            }
+        });
+
+        clearCompletedBtn.addEventListener('click', clearCompletedChores);
+        
+        initialize();
+
+    </script>
+</body>
+</html>
